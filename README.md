@@ -17,6 +17,7 @@ https://www.pyimagesearch.com/2017/09/25/configuring-ubuntu-for-deep-learning-wi
 
 
 sudo pip install virtualenv virtualenvwrapper
+(use pip install virtualenvwrapper-win on windows)
 
 mkvirtualenv simpsonsKeras 
 
