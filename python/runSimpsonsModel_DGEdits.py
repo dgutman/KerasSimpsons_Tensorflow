@@ -9,12 +9,11 @@ import tarfile
 import numpy as np
 import syncImageDataFromGirder as ImageSync
 
-
 data_root = os.sep+os.path.join('tmp', 'simpsons')
 dest_filename = os.path.join(data_root, 'simpsons_dataset.tar.gz')
 
-
-useGirder=True
+useGirder=False
+skipDownload = True
 
 # filename = '/home/dagutman/dev/KerasSimpsons_Tensorflow/simpsons_dataset.tar.gz'
 
@@ -67,7 +66,6 @@ nb_validation_samples = 990
 epochs = 50
 batch_size = 32
 
-
 # Model definition
 if K.image_data_format() == 'channels_first':
     input_shape = (3, img_width, img_height)
@@ -75,11 +73,11 @@ else:
     input_shape = (img_width, img_height, 3)
 
 ### this corresponds to the number of classes/characters we have in our TRAINING set
-NumLabels = 42
+NumLabels = 20
+NumValidationLabels = 20
 ## TO DO ; make this just equal to the number of directories in the training_data_dir
 
 
-    
 model = Sequential()
 model.add(Conv2D(32, (5, 5), input_shape=input_shape))
 model.add(Activation('relu'))
@@ -100,7 +98,7 @@ model.add(Dropout(0.5))
 model.add(Dense(64))
 model.add(Activation('relu'))
 model.add(Dropout(0.5))
-model.add(Dense(NumLabels))
+model.add(Dense(20))
 model.add(Activation('softmax'))
 
 model.compile(loss='categorical_crossentropy',
@@ -141,4 +139,3 @@ simpsonsModel = model.fit_generator(
     epochs=epochs,
     validation_data=validation_generator,
     validation_steps=nb_validation_samples // batch_size)
-	

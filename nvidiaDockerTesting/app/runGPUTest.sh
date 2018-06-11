@@ -4,5 +4,5 @@ docker run \
     -ti \
     -v "${PWD}:/app" \
     tensorflow/tensorflow:latest-gpu \
-    python /app/benchmark.py cpu 15000 
+    python /app/benchmark.py gpu 15000 
 
