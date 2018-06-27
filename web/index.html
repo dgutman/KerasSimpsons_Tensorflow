@@ -27,6 +27,43 @@
         template: "Keras Simpsons Model Viewer, by Raj"
     }
 
+  // <input type="button" name="" value="Template A" onclick="$$('movie').define('type','typeA');$$('movie').render();">
+	 //    <input type="button" name="" value="Template B" onclick="$$('movie').define('type','typeB');$$('movie').render();">
+
+
+
+    // drag: true,
+    //             type: {
+    //                 height: 180
+    //             },
+    //             template: "#name# <br> <img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=60'>  #meta.characterClass# #meta.imgSourceId#" ,
+    //             on:
+
+	 webix.type(webix.ui.dataview,{
+			name:"smallThumb",
+			template: "<img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=60'>",
+			width: 65,
+            height: 65
+		});
+
+		webix.type(webix.ui.dataview,{
+			name:"mediumThumb",
+			template: "<img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=128'>",
+			width: 130,
+            height: 130
+		});
+
+
+	 webix.type(webix.ui.dataview,{
+			name:"namedThumb",
+			template: "<div class='overall'><div class='rank'>#rank#.</div><div class='title'>#title#</div><div class='year'>#year# year</div> </div>",
+			width: 260,
+            height: 90
+		});
+
+
+
+
     var LeftPanel = {
         id: "leftPanel",
         view: "dataview",
@@ -71,6 +108,8 @@
         }
     }
 
+
+// $$("mainThumbGallery").define('type','namedThumb');  $$("mainThumbGallery").refresh()
 //http://adrc.digitalslidearchive.emory.edu:8080/api/v1/item/596e3c5d92ca9a000b2af7f7/tiles/thumbnail
     var mainThumbGallery = {
         rows: [{
@@ -78,7 +117,7 @@
                 cols: [
                     { id: "imgCount", view: "template", template: "imgCount" },
                     { id: "imgClasses", view: "template", template: "imgClasses" },
-                    { id: "thumbTempalte", view: "template", template: "ChangeThumbTemplate" }
+                    { id: "thumbTemplate", view: "template", template: "ChangeThumbTemplate" }
 
                 ]
             },
@@ -91,7 +130,7 @@
                 type: {
                     height: 180
                 },
-                template: "#name# <br> <img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=80'>  #meta.characterClass# #meta.imgSourceId#" ,
+                template: "#name# <br> <img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=60'>  #meta.characterClass# #meta.imgSourceId#" ,
                 on:
 
                     {
