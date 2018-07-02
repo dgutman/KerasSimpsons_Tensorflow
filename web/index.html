@@ -24,44 +24,49 @@
     var header = {
         view: "template",
         type: "header",
-        template: "Keras Simpsons Model Viewer, by Raj"
+        template: "Keras Simpsons Model Viewer"
     }
 
-  // <input type="button" name="" value="Template A" onclick="$$('movie').define('type','typeA');$$('movie').render();">
-	 //    <input type="button" name="" value="Template B" onclick="$$('movie').define('type','typeB');$$('movie').render();">
 
+    // onAfterLoad: function() {
+    //     firstId = $$("leftPanel").getFirstId()
+    //     $$("leftPanel").select(firstId);
+    // },
 
+    // <input type="button" name="" value="Template A" onclick="$$('movie').define('type','typeA');$$('movie').render();">
+    //    <input type="button" name="" value="Template B" onclick="$$('movie').define('type','typeB');$$('movie').render();">
 
-    // drag: true,
-    //             type: {
-    //                 height: 180
-    //             },
-    //             template: "#name# <br> <img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=60'>  #meta.characterClass# #meta.imgSourceId#" ,
-    //             on:
+    //Define named templates for the thumbnail Gallery
 
-	 webix.type(webix.ui.dataview,{
-			name:"smallThumb",
-			template: "<img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=60'>",
-			width: 65,
-            height: 65
-		});
+    webix.type(webix.ui.dataview, {
+        name: "smallThumb",
+        template: "<img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=60'>",
+        width: 65,
+        height: 65
+    });
 
-		webix.type(webix.ui.dataview,{
-			name:"mediumThumb",
-			template: "<img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=128'>",
-			width: 130,
-            height: 130
-		});
+    webix.type(webix.ui.dataview, {
+        name: "mediumThumb",
+        template: "<img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=128'>",
+        width: 130,
+        height: 130
+    });
 
+    webix.type(webix.ui.dataview, {
+        name: "largeThumb",
+        template: "<img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=256'>",
+        width: 260,
+        height: 260
+    });
 
-	 webix.type(webix.ui.dataview,{
-			name:"namedThumb",
-			template: "<div class='overall'><div class='rank'>#rank#.</div><div class='title'>#title#</div><div class='year'>#year# year</div> </div>",
-			width: 260,
-            height: 90
-		});
+    webix.type(webix.ui.dataview, {
+        name: "namedThumb",
+        template: "#name#<br><img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=128'>",
+        width: 150,
+        height: 90
+    });
 
-
+    //	 var templateNames = ['smallThumb', 'mediumThumb', 'namedThumb']
 
 
     var LeftPanel = {
@@ -70,7 +75,7 @@
         select: true,
         gravity: 0.2,
         type: {
-            template: "<b>#name#</b> ",
+            template: "#name# #itemCount# img",
             height: 100
         },
         on: {
@@ -80,12 +85,14 @@
                     $$("leftPanel").parse(folderListData);
                     $$("leftPanel").refresh();
 
+                    firstFolder = $$("leftPanel").getFirstId();
+                    $$("leftPanel").select(firstFolder);
+
+				$$("imgClasses").setHTML("# Classes:" +$$("leftPanel").count());
+
+
                 })
             }),
-            // onAfterLoad: function() {
-            //     firstId = $$("leftPanel").getFirstId()
-            //     $$("leftPanel").select(firstId);
-            // },
             "onAfterSelect": function(id) {
 
                 var folder = this.getItem(id);
@@ -93,31 +100,41 @@
                     $$("mainThumbGallery").clearAll();
                     $$("mainThumbGallery").parse(JSON.parse(itemList));
                     $$("mainThumbGallery").refresh();
+                	$$("imgCount").setHTML("Item Count: " + $$("mainThumbGallery").count());
+
                 })
 
-                // $$("imgClasses").setHTML($$("mainImgTable").count());
-                // selectedDataSet = $$("mainImgTable").getItem(id);
-                // // console.log(selectedDataSet);
-                // $$("mainThumbGallery").clearAll();
-                // $$("mainThumbGallery").parse(selectedDataSet.imgSet);
-
-                // // ]},m.setHTML("HII"
-                // $$("imgCount").setHTML($$("mainThumbGallery").count());
             }
 
         }
     }
 
 
-// $$("mainThumbGallery").define('type','namedThumb');  $$("mainThumbGallery").refresh()
-//http://adrc.digitalslidearchive.emory.edu:8080/api/v1/item/596e3c5d92ca9a000b2af7f7/tiles/thumbnail
+
+    var changeDVTemplate = function(id) {
+        //webix.message(id) 
+
+        $$("mainThumbGallery").define('type',id);  $$("mainThumbGallery").refresh()
+        //http://adrc.digitalslidearchive.emory.edu:8080/api/v1/item/596e3c5d92ca9a000b2af7f7/tiles/thumbnail
+
+
+    };
+
+
+
+	plotlyView = { view: "template", content: "plotlyDiv" }
+
+
     var mainThumbGallery = {
         rows: [{
                 gravity: 0.1,
                 cols: [
                     { id: "imgCount", view: "template", template: "imgCount" },
                     { id: "imgClasses", view: "template", template: "imgClasses" },
-                    { id: "thumbTemplate", view: "template", template: "ChangeThumbTemplate" }
+                    { view: "button", type: "icon", id: "smallThumb", icon: "envelope", width: 120, label: "small", click: changeDVTemplate, tooltip: "small Thumbs" },
+                    { view: "button", type: "icon", id: "mediumThumb", icon: "flag", label: "medium", click: changeDVTemplate, tooltip: "medium thumbs" },
+                    { view: "button", type: "icon", id: "largeThumb", icon: "plus", label: "large", click: changeDVTemplate },
+                    { view: "button", type: "icon", id: "namedThumb", icon: "plus", label: "named", click: changeDVTemplate }
 
                 ]
             },
@@ -127,21 +144,19 @@
                 select: true,
                 multiselect: true,
                 drag: true,
-                type: {
-                    height: 180
-                },
-                template: "#name# <br> <img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=60'>  #meta.characterClass# #meta.imgSourceId#" ,
+                // type: {
+                //     height: 180
+                // },
+                type: "smallThumb",
                 on:
-
-                    {
-                        "onAfterSelect": function(id)
-                                {
-                                    webix.message("clickity clickity")
-                                    webix.message(id);
-                                    itemInfo = this.getItem(id);
-                                    console.log(itemInfo);
-                                }
+                {
+                    "onAfterSelect": function(id) {
+//                        webix.message("clickity clickity")
+  //                      webix.message(id);
+                        itemInfo = this.getItem(id);
+                        console.log(itemInfo);
                     }
+                }
             }
         ]
     }
@@ -163,7 +178,7 @@
                 type: {
                     height: 80
                 },
-                template: "#name# <img src='#ComingSoon#' class='template-image' >"
+                type: "smallThumb"
             }
         ]
     }
@@ -180,7 +195,18 @@
             }
         ]
     })
+    // drag: true,
+    //             type: {
+    //                 height: 180
+    //             },
+    //             template: "#name# <br> <img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=60'>  #meta.characterClass# #meta.imgSourceId#" ,
+    //             on:
     </script>
+
+
+<div id="plotlyDiv"></div>
+
+
 </body>
 
 </html>
