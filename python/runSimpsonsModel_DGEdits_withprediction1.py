@@ -14,6 +14,8 @@ from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras import backend as K
+from keras.callbacks import Callback
+import time
 import os
 import sys
 import tarfile
@@ -28,29 +30,8 @@ from pickle import load
 import pandas
 from sklearn.metrics import classification_report, confusion_matrix
 
-with open("epochout.txt", "w") as file:
-    sys.stdout = sys.stderr = file 
-
 data_root = '/data/trainingdata'
 predict_data_dir = '/data/testimagedata'
-
-def maybe_extract(filename, force=False):
-  root = os.path.splitext(os.path.splitext(filename)[0])[0]  # remove .tar.gz
-  if os.path.isdir(root) and not force:
-    print('%s already present - Skipping extraction of %s.' % (root, filename))
-  else:
-    print('Extracting data for %s. This may take a while. Please wait.' % root)
-    tar = tarfile.open(filename)
-    sys.stdout.flush()
-    tar.extractall(root)
-    tar.close()
-  data_folders = [
-    os.path.join(root, d) for d in sorted(os.listdir(root))
-    if os.path.isdir(os.path.join(root, d))]
-  return data_folders
-#data_folders = maybe_extract(dest_filename)
-#data_folders = maybe_extract(filename)
-
 
 img_width, img_height = 64, 64
 train_data_dir = '/data/trainingdata/training' 
@@ -61,13 +42,15 @@ nb_validation_samples = 890
 epochs = 2
 batch_size = 32
 
+## TO DO   NEED TO REMOVE HARD CODING THE NUMBER OF LABELS IT SHOULD FIGURE THIS OUT FROM os.listdir
+
 
 # Model definition
 if K.image_data_format() == 'channels_first':
     input_shape = (3, img_width, img_height)
 else:
     input_shape = (img_width, img_height, 3)
-NumLabels = 18
+NumLabels = 20
     
 '''
 6-conv layers - added on 06/21, Raj
@@ -104,6 +87,20 @@ model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
 
+class TimeHistory(Callback):
+    def on_train_begin(self, logs={}):
+        self.times = []
+
+    def on_epoch_begin(self, batch, logs={}):
+        self.epoch_time_start = time.time()
+
+    def on_epoch_end(self, batch, logs={}):
+        self.times.append(time.time() - self.epoch_time_start)
+
+time_callback = TimeHistory()
+#model.fit(..., callbacks=[..., time_callback],...)
+#times = time_callback.times
+
 # Data augmentation for training
 train_datagen = ImageDataGenerator(
     rescale=1. / 255.0,
@@ -135,9 +132,15 @@ simpsonsModel = model.fit_generator(
     steps_per_epoch=nb_train_samples // batch_size,
     epochs=epochs,
     validation_data=validation_generator,
-    validation_steps=nb_validation_samples // batch_size)
+    validation_steps=nb_validation_samples // batch_size,
+    callbacks=[time_callback])
 
 print ("model generated")
+
+timefile = open('epochtimes.json', "a+")
+
+times = time_callback.times
+print >> timefile, times
 
 model.save('/data/trainingdata/simpsons_weights6_0629.h5')
 
@@ -176,14 +179,4 @@ _ = pyplot.xticks(tick_marks, classes, rotation=90)
 _ = pyplot.yticks(tick_marks, classes)
 pyplot.savefig('simpsons_predict_0629.png')
 
-
-# To extract epoch run time
-# import re
-# pattern = re.compile(r's/step*')
-
-# # epochs=[]
-# # with open("epochout.txt") as f:
-# #     for line in f:
-# #         epochs=pattern.search(line).group()
-            
 
