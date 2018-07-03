@@ -1,3 +1,5 @@
 rawImageData
 simpsonsZipData/
 kaggle_simpsons_testset/
+.ipynb_checkpoints/
+.DS_Store
