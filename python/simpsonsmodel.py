@@ -15,6 +15,7 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras import backend as K
 from keras.callbacks import Callback
+import datetime
 import time
 import os
 import sys
@@ -29,20 +30,30 @@ import pickle
 from pickle import load
 import pandas
 from sklearn.metrics import classification_report, confusion_matrix
+import glob 
+import datetime
 
-data_root = '/data/trainingdata'
-predict_data_dir = '/data/testimagedata'
+resultsDir ="/app/results/"
+if not os.path.isdir(resultsDir):
+    os.makedirs(resultsDir)
+
+
+now = datetime.datetime.now()
 
 img_width, img_height = 64, 64
-train_data_dir = '/data/trainingdata/training' 
-validation_data_dir = '/data/trainingdata/validation' 
+train_data_dir = '/data/trainingdata' 
+validation_data_dir = '/data/validationdata' 
 
-nb_train_samples = 19000
-nb_validation_samples = 890
-epochs = 2
+nb_train_samples = 0
+for root, dirs, files in os.walk(train_data_dir):
+    nb_train_samples += len(files)
+
+nb_validation_samples = 0
+for root, dirs, files in os.walk(validation_data_dir):
+    nb_validation_samples += len(files)
+
+epochs = 1
 batch_size = 32
-
-## TO DO   NEED TO REMOVE HARD CODING THE NUMBER OF LABELS IT SHOULD FIGURE THIS OUT FROM os.listdir
 
 
 # Model definition
@@ -50,8 +61,36 @@ if K.image_data_format() == 'channels_first':
     input_shape = (3, img_width, img_height)
 else:
     input_shape = (img_width, img_height, 3)
-NumLabels = 20
-    
+
+
+# Data augmentation for training
+train_datagen = ImageDataGenerator(
+    rescale=1. / 255.0,
+    shear_range=0.2,
+    zoom_range=0.2,
+    width_shift_range = 0.2,
+    height_shift_range = 0.2,
+    fill_mode = 'nearest',
+    horizontal_flip=True)
+
+# Only rescaling for validation
+valid_datagen = ImageDataGenerator(rescale=1. / 255.0)
+
+# Flows the data directly from the directory structure, resizing where needed
+train_generator = train_datagen.flow_from_directory(
+    train_data_dir,
+    target_size=(img_width, img_height),
+    batch_size=batch_size,
+    class_mode='categorical')
+
+validation_generator = valid_datagen.flow_from_directory(
+    validation_data_dir,
+    target_size=(img_width, img_height),
+    batch_size=batch_size,
+    class_mode='categorical')
+
+NumLabels = len(validation_generator.class_indices)
+
 '''
 6-conv layers - added on 06/21, Raj
 '''
@@ -87,6 +126,8 @@ model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
 
+
+# Timehistory callback to get epoch run times
 class TimeHistory(Callback):
     def on_train_begin(self, logs={}):
         self.times = []
@@ -98,60 +139,43 @@ class TimeHistory(Callback):
         self.times.append(time.time() - self.epoch_time_start)
 
 time_callback = TimeHistory()
-#model.fit(..., callbacks=[..., time_callback],...)
-#times = time_callback.times
 
-# Data augmentation for training
-train_datagen = ImageDataGenerator(
-    rescale=1. / 255.0,
-    shear_range=0.2,
-    zoom_range=0.2,
-    width_shift_range = 0.2,
-    height_shift_range = 0.2,
-    fill_mode = 'nearest',
-    horizontal_flip=True)
 
-# Only rescaling for validation
-valid_datagen = ImageDataGenerator(rescale=1. / 255.0)
-
-# Flows the data directly from the directory structure, resizing where needed
-train_generator = train_datagen.flow_from_directory(
-    train_data_dir,
-    target_size=(img_width, img_height),
-    batch_size=batch_size,
-    class_mode='categorical')
-
-validation_generator = valid_datagen.flow_from_directory(
-    validation_data_dir,
-    target_size=(img_width, img_height),
-    batch_size=batch_size,
-    class_mode='categorical')
-
+# Model fitting and training run
 simpsonsModel = model.fit_generator(
     train_generator,
     steps_per_epoch=nb_train_samples // batch_size,
     epochs=epochs,
     validation_data=validation_generator,
     validation_steps=nb_validation_samples // batch_size,
-    callbacks=[time_callback])
 
-print ("model generated")
+    callbacks=[time_callback])    
 
-timefile = open('epochtimes.json', "a+")
 
+print "Finished running the basic model... trying to save results now.."
+
+# To write the each epoch run time into a json file
+now = datetime.datetime.now()
+
+filetime = str(now.year)+str(now.month)+str(now.day)+'_'+str(now.hour)+str(now.minute)+str(now.second)+str(now.microsecond)
+epochfilename='SimpsonsEpochRuntime_'+filetime+'.json'
+timefile = open(epochfilename, "a+")
 times = time_callback.times
 print >> timefile, times
 
-model.save('/data/trainingdata/simpsons_weights6_0629.h5')
+modelfilename=str(now.year)+str(now.month)+str(now.day)+'_'+str(now.hour)+str(now.minute)+str(now.second)+str(now.microsecond)
+modelfilename=resultsDir+'Simpsonsmodel_'+modelfilename+'.h5'
 
-pandas.DataFrame(simpsonsModel.history).to_json("/data/trainingdata/simpsons_history_0629.json")
+model.save(modelfilename)
 
-# printing Confusion Matrix and Classification Report
-target_names = ['grampa',  'apu', 'bart',  'burns',  'chief', 'comic', 'edna', 'homer', 'brockman',
-            'krusty',  'lisa', 'marge', 'milhouse', 'moe', 'ned', 'nelson', 'skinner', 'sideshow']
+historyfilename =resultsDir+ 'SimsonsModelhistory_'+filetime+'.json'
+pandas.DataFrame(simpsonsModel.history).to_json(historyfilename)
+#pandas.DataFrame(simpsonsModel.history).to_json("/data/trainingdata/simpsons_history_0629.json")
 
 # saving Confusion Matrix and Classification Report to a file
-file = open('simpsons_output.txt', "a+")
+target_names = validation_generator.class_indices
+optfile = resultsDir+ 'SimsonsModeoutput_'+filetime+'.txt'
+file = open(optfile, "a+")
 Y_pred = model.predict_generator(validation_generator, nb_validation_samples // batch_size+1)
 y_pred = np.argmax(Y_pred, axis=1)
 ptropt= 'Confusion Matrix' 
@@ -166,17 +190,14 @@ file.close()
 
 
 #Confusion Matrix is shown on a Plot
-chardict = {'grampa': 0,  'apu': 1, 'bart': 2,  'burns': 3,  'chief': 4, 'comic': 5, 'edna': 6, 'homer': 7, 'brockman': 8,
-            'krusty': 9,  'lisa': 10, 'marge': 11, 'milhouse': 12, 'moe': 13, 'ned': 14, 'nelson': 
-             15, 'skinner': 16, 'sideshow': 17}
 pyplot.figure(figsize=(8,8))
 cnf_matrix =confusion_matrix(validation_generator.classes, y_pred)
-classes = list(chardict.values())
+#classes = list(chardict.values())
+classes = list(target_names)
 pyplot.imshow(cnf_matrix, interpolation='nearest')
 pyplot.colorbar()
 tick_marks = np.arange(len(classes))  
 _ = pyplot.xticks(tick_marks, classes, rotation=90)
 _ = pyplot.yticks(tick_marks, classes)
-pyplot.savefig('simpsons_predict_0629.png')
-
-
+plotopt= resultsDir + 'SimsonsModelImage_'+filetime+'.png'
+pyplot.savefig(plotopt)
