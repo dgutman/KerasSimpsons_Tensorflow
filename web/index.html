@@ -5,6 +5,8 @@
     <link rel="stylesheet" href="http://cdn.webix.com/edge/webix.css" type="text/css">
     <script src="http://cdn.webix.com/edge/webix.js" type="text/javascript"></script>
     <link rel="stlyesheet" href="css/facetCSS.css" type="text/css">
+    <script src="config.js" type="text/javascript"></script>
+    <script src="girderHelpers.js" type="text/javascript"></script>
     <style>
     /* Key parameter for setting up my template!! New CSS Trick below */
 
@@ -18,17 +20,109 @@
 <body>
     <script type="text/javascript" charset="utf-8">
     /* place for UI configuration */
-    var thumbnailViewer = { view: "template", template: "Data View Goes here" }
-    simpsonsData = {}
 
-    webix.ajax().get("./simpsonsImgMetaData.json", function(text) {
-        // console.log(simpJSON)
+    var header = {
+        view: "template",
+        type: "header",
+        template: "Keras Simpsons Model Viewer"
+    }
 
-        simpsonsData_JSON = JSON.parse(text);
-        simpsonsData = simpsonsData_JSON;
-        $$("mainImgTable").parse(simpsonsData_JSON)
-    })
 
+    // onAfterLoad: function() {
+    //     firstId = $$("leftPanel").getFirstId()
+    //     $$("leftPanel").select(firstId);
+    // },
+
+    // <input type="button" name="" value="Template A" onclick="$$('movie').define('type','typeA');$$('movie').render();">
+    //    <input type="button" name="" value="Template B" onclick="$$('movie').define('type','typeB');$$('movie').render();">
+
+    //Define named templates for the thumbnail Gallery
+
+    webix.type(webix.ui.dataview, {
+        name: "smallThumb",
+        template: "<img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=60'>",
+        width: 65,
+        height: 65
+    });
+
+    webix.type(webix.ui.dataview, {
+        name: "mediumThumb",
+        template: "<img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=128'>",
+        width: 130,
+        height: 130
+    });
+
+    webix.type(webix.ui.dataview, {
+        name: "largeThumb",
+        template: "<img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=256'>",
+        width: 260,
+        height: 260
+    });
+
+    webix.type(webix.ui.dataview, {
+        name: "namedThumb",
+        template: "#name#<br><img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=128'>",
+        width: 150,
+        height: 90
+    });
+
+    //	 var templateNames = ['smallThumb', 'mediumThumb', 'namedThumb']
+
+
+    var LeftPanel = {
+        id: "leftPanel",
+        view: "dataview",
+        select: true,
+        gravity: 0.2,
+        type: {
+            template: "#name# #itemCount# img",
+            height: 100
+        },
+        on: {
+            "onAfterRender": webix.once(function(id) {
+                girderHelpers('listFoldersinFolder', config.CBIR_FolderRootID).then(function(folderList) {
+                    var folderListData = JSON.parse(folderList);
+                    $$("leftPanel").parse(folderListData);
+                    $$("leftPanel").refresh();
+
+                    firstFolder = $$("leftPanel").getFirstId();
+                    $$("leftPanel").select(firstFolder);
+
+				$$("imgClasses").setHTML("# Classes:" +$$("leftPanel").count());
+
+
+                })
+            }),
+            "onAfterSelect": function(id) {
+
+                var folder = this.getItem(id);
+                girderHelpers('listItemsInFolder', folder._id).then(function(itemList) {
+                    $$("mainThumbGallery").clearAll();
+                    $$("mainThumbGallery").parse(JSON.parse(itemList));
+                    $$("mainThumbGallery").refresh();
+                	$$("imgCount").setHTML("Item Count: " + $$("mainThumbGallery").count());
+
+                })
+
+            }
+
+        }
+    }
+
+
+
+    var changeDVTemplate = function(id) {
+        //webix.message(id) 
+
+        $$("mainThumbGallery").define('type',id);  $$("mainThumbGallery").refresh()
+        //http://adrc.digitalslidearchive.emory.edu:8080/api/v1/item/596e3c5d92ca9a000b2af7f7/tiles/thumbnail
+
+
+    };
+
+
+
+	plotlyView = { view: "template", content: "plotlyDiv" }
 
 
     var mainThumbGallery = {
@@ -37,171 +131,82 @@
                 cols: [
                     { id: "imgCount", view: "template", template: "imgCount" },
                     { id: "imgClasses", view: "template", template: "imgClasses" },
-                    { id: "thumbTempalte", view: "template", template: "ChangeThumbTemplate" }
+                    { view: "button", type: "icon", id: "smallThumb", icon: "envelope", width: 120, label: "small", click: changeDVTemplate, tooltip: "small Thumbs" },
+                    { view: "button", type: "icon", id: "mediumThumb", icon: "flag", label: "medium", click: changeDVTemplate, tooltip: "medium thumbs" },
+                    { view: "button", type: "icon", id: "largeThumb", icon: "plus", label: "large", click: changeDVTemplate },
+                    { view: "button", type: "icon", id: "namedThumb", icon: "plus", label: "named", click: changeDVTemplate }
 
                 ]
             },
             {
                 view: "dataview",
                 id: "mainThumbGallery",
+                select: true,
+                multiselect: true,
+                drag: true,
+                // type: {
+                //     height: 180
+                // },
+                type: "smallThumb",
+                on:
+                {
+                    "onAfterSelect": function(id) {
+//                        webix.message("clickity clickity")
+  //                      webix.message(id);
+                        itemInfo = this.getItem(id);
+                        console.log(itemInfo);
+                    }
+                }
+            }
+        ]
+    }
+
+    dragAndDropTarget = {
+        gravity: 0.2,
+        rows: [
+
+            { view: "template", template: "Drag And Drop Target", gravity: 0.2 },
+            {
+
+                view: "dataview",
+                id: "dragTarget",
                 autoconfig: true,
                 select: true,
                 multiselect: true,
                 drag: true,
+
                 type: {
-                    height: 140
+                    height: 80
                 },
-                template: "<img src='#fileWpath#'  class='template-image' >"
+                type: "smallThumb"
             }
         ]
     }
 
 
-    dragAndDropTarget = {gravity: 0.2, 
-    	rows: [
-
-    	{view:"template",template:"Drag And Drop Target", gravity: 0.2},
-    	{
-
-        view: "dataview",
-        id: "dragTarget",
-        autoconfig: true,
-        select: true,
-        multiselect: true,
-        drag: true,
-
-        type: {
-            height: 140
-        },
-        template: "<img src='#fileWpath#' class='template-image' >"
-    }]}
-
-
-
-
     webix.ui({
-        rows: [{
-                view: "template",
-                type: "header",
-                template: "Keras Simpsons Model Viewer"
-            },
+        rows: [header,
             {
-                cols: [{
-
-                        id: "mainImgTable",
-                        view: "dataview",
-                        autoConfig: true,
-                        fixedRowHeight: false,
-                        select: true,
-                        gravity: 0.2,
-                        //url: "./simpsonsImgMetaData.json",
-                        type: {
-                            template: "#label# <img src='#sampleImg.fileWpath#'  class='template-image'  >",
-                            height: 140
-                        },
-                        on: {
-                            "onAfterSelect": function(id) {
-                                $$("imgClasses").setHTML($$("mainImgTable").count());
-                                selectedDataSet = $$("mainImgTable").getItem(id);
-                                // console.log(selectedDataSet);
-                                $$("mainThumbGallery").clearAll();
-                                $$("mainThumbGallery").parse(selectedDataSet.imgSet);
-
-                                // ]},m.setHTML("HII"
-                                $$("imgCount").setHTML($$("mainThumbGallery").count());
-                            }
-                        }
-
-                    },
+                cols: [
+                    LeftPanel,
                     mainThumbGallery,
                     dragAndDropTarget
                 ]
-
-
             }
-
-
-
         ]
     })
+    // drag: true,
+    //             type: {
+    //                 height: 180
+    //             },
+    //             template: "#name# <br> <img src='" +config.BASE_URL + "/item/#_id#/tiles/thumbnail?height=60'>  #meta.characterClass# #meta.imgSourceId#" ,
+    //             on:
     </script>
+
+
+<div id="plotlyDiv"></div>
+
+
 </body>
 
 </html>
-<!-- // type: {
-    //        height: 60,
-    //    },
-    //    template:"<div class='webix_strong'>#title#</div> Year: #year#, rank: #rank#",
-    //    .container {
-    //   width: 300px;
-    //   border: dashed blue 1px;
-    // }
-
-    // .container img {
-    //   max-height: 100%;
-    //   max-width: 100%;
-    // }
-    // define([
-    //     "models/images",
-    //     "templates/image",
-    //     "views/filter_header",
-    //     "views/image_window"
-    // ], function (Images, imageTemplate, filterHeaderView, imageWindow) {
-    //     var dataviewId = "images-dataview", ui = {
-    //         id: "dataview-layout",
-    //         rows: [
-    //             filterHeaderView,
-    //             {
-    //                 id: dataviewId,
-    //                 view: "dataview",
-    //                 css: "images-dataview",
-    //                 height: NaN,
-    //                 scroll: true,
-    //                 select: true,
-    //                 data: null,
-    //                 on: {
-    //                     onItemClick: function (id) {
-    //                         imageWindow.showWindow(this.getItem(id));
-    //                     }
-    //                 },
-    //                 template: function(data){
-    //                     return imageTemplate.getTemplate(data);
-    //                 }
-    //             }
-    //         ]
-    //     };
-
-    //     Images.attachEvent("imagesLoaded", function() {
-    //        var data = this.getImages();
-    //         $$(dataviewId).clearAll();
-    //         $$(dataviewId).parse(data);
-    //         $$(dataviewId).hideProgress();
-    //     });
-
-    //     Images.attachEvent("imagesViewStateChange", function() {
-    //         var sizes = this.getImagesSize($$(dataviewId).$width);
-    //         $$(dataviewId).define("type", sizes);
-    //         $$(dataviewId).render();
-
-    //     });
-
-
-    //     return {
-    //         $ui: ui,
-    //         $oninit: function() {
-    //             var sizes;
-    //             webix.extend($$(dataviewId), webix.ProgressBar);
-    //             sizes = Images.getImagesSize($$(dataviewId).$width);
-    //             $$(dataviewId).define("type", sizes);
-    //             $$(dataviewId).showProgress({
-    //                 type:"icon"
-    //             });
-    //             Images.loadImages();
-    //         }
-    //     }
-    // });
-
-    //     { cols:[
-    //   { view:"button", label: "addRow", width: 140, click: function() { webix.message("Row added"); dynRowAdd() } },
-    //   { view:"button", label: "addColumn", width: 140, click: function() { webix.message("Column added"); dynColAdd() }},
-    //   {} -->
