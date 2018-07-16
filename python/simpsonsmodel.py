@@ -32,6 +32,9 @@ import pandas
 from sklearn.metrics import classification_report, confusion_matrix
 import glob 
 import datetime
+import subprocess
+import pandas as pd
+
 
 resultsDir ="/app/results/"
 if not os.path.isdir(resultsDir):
@@ -52,7 +55,7 @@ nb_validation_samples = 0
 for root, dirs, files in os.walk(validation_data_dir):
     nb_validation_samples += len(files)
 
-epochs = 1
+epochs = 5
 batch_size = 32
 
 
@@ -127,6 +130,11 @@ model.compile(loss='categorical_crossentropy',
               metrics=['accuracy'])
 
 
+# Captures GPU usage
+subprocess.Popen("timeout 120 nvidia-smi --query-gpu=utilization.gpu,utilization.memory --format=csv -l 1 | sed s/%//g > /app/results/GPU-stats.log",shell=True)
+
+
+
 # Timehistory callback to get epoch run times
 class TimeHistory(Callback):
     def on_train_begin(self, logs={}):
@@ -157,24 +165,23 @@ print "Finished running the basic model... trying to save results now.."
 # To write the each epoch run time into a json file
 now = datetime.datetime.now()
 
-filetime = str(now.year)+str(now.month)+str(now.day)+'_'+str(now.hour)+str(now.minute)+str(now.second)+str(now.microsecond)
+filetime = str(now.year)+str(now.month)+str(now.day)+'_'+str(now.hour)+str(now.minute)+str(now.second)
 epochfilename='SimpsonsEpochRuntime_'+filetime+'.json'
 timefile = open(epochfilename, "a+")
 times = time_callback.times
 print >> timefile, times
 
-modelfilename=str(now.year)+str(now.month)+str(now.day)+'_'+str(now.hour)+str(now.minute)+str(now.second)+str(now.microsecond)
-modelfilename=resultsDir+'Simpsonsmodel_'+modelfilename+'.h5'
+modelfilename=resultsDir+'Simpsonsmodel_'+filetime+'.h5'
 
 model.save(modelfilename)
 
-historyfilename =resultsDir+ 'SimsonsModelhistory_'+filetime+'.json'
+historyfilename =resultsDir+ 'SimpsonsModelhistory_'+filetime+'.json'
 pandas.DataFrame(simpsonsModel.history).to_json(historyfilename)
 #pandas.DataFrame(simpsonsModel.history).to_json("/data/trainingdata/simpsons_history_0629.json")
 
 # saving Confusion Matrix and Classification Report to a file
 target_names = validation_generator.class_indices
-optfile = resultsDir+ 'SimsonsModeoutput_'+filetime+'.txt'
+optfile = resultsDir+ 'SimpsonsModeoutput_'+filetime+'.txt'
 file = open(optfile, "a+")
 Y_pred = model.predict_generator(validation_generator, nb_validation_samples // batch_size+1)
 y_pred = np.argmax(Y_pred, axis=1)
@@ -199,5 +206,13 @@ pyplot.colorbar()
 tick_marks = np.arange(len(classes))  
 _ = pyplot.xticks(tick_marks, classes, rotation=90)
 _ = pyplot.yticks(tick_marks, classes)
-plotopt= resultsDir + 'SimsonsModelImage_'+filetime+'.png'
+plotopt= resultsDir + 'SimpsonsModelImage_'+filetime+'.png'
 pyplot.savefig(plotopt)
+
+
+#To plot GPU usage
+gpu = pd.read_csv("/app/results/GPU-stats.log")   # make sure that 120 seconds have expired before running this cell
+gpuplt=gpu.plot()
+gpuplt=pyplot.show()
+gpuplt='/app/results/SimsonsGPUImage_'+filetime+'.png'
+pyplot.savefig(gpuplt) 
