@@ -15,11 +15,7 @@ from keras.layers import Conv2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense
 from keras import backend as K
 from keras.callbacks import Callback
-import datetime
-import time
-import os
-import sys
-import tarfile
+import datetime, time, os, sys
 import numpy as np
 import h5py
 import matplotlib as plt
@@ -27,36 +23,77 @@ plt.use('Agg')
 import matplotlib.pyplot as pyplot
 pyplot.figure
 import pickle 
-from pickle import load
-import pandas
+#from pickle import load
 from sklearn.metrics import classification_report, confusion_matrix
-import glob 
-import datetime
 import subprocess
 import pandas as pd
 
+import nvidia_smi as nvs
+import io
+import pickle
+import json
+
+
+try:
+    to_unicode = unicode
+except NameError:
+    to_unicode = str
+
+modelInfo = {}
+modelInfo['Device']  = {} ## Initialize an object to store info on the model and time info
+
+nvs.nvmlInit()
+
+driverVersion = nvs.nvmlSystemGetDriverVersion()
+print("Driver Version: {}".format(driverVersion))
+modelInfo['Device']['driverVersion']  = driverVersion
+
+# e.g. will print:
+#   Driver Version: 352.00
+deviceCount = nvs.nvmlDeviceGetCount()
+deviceNames = []
+for i in range(deviceCount):
+    handle = nvs.nvmlDeviceGetHandleByIndex(i)
+    dvn = nvs.nvmlDeviceGetName(handle) # store the device name
+    print("Device {}: {}".format(i,  dvn))
+    deviceNames.append(dvn)
+    # e.g. will print:
+    #  Device 0 : Tesla K40c
+nvs.nvmlShutdown()
+
+modelInfo['Device']['deviceNames']  = deviceNames
+
+
+
+
+### These parameters can be tuned and may affect classification results or accuracy
+img_width, img_height = 64, 64
+epochs = 1
+batch_size = 128
+
+
+modelInfo['batch_size'] = batch_size
+modelInfo['epochs'] = epochs
+modelInfo['img_width'] = 64
+modelInfo['img_height'] = 64
+ 
+
+### Define input dirs and output for results which contain the models as well as stats on the run
+train_data_dir = '/data/train' 
+validation_data_dir = '/data/test' 
 
 resultsDir ="/app/results/"
 if not os.path.isdir(resultsDir):
     os.makedirs(resultsDir)
 
-
-now = datetime.datetime.now()
-
-img_width, img_height = 64, 64
-train_data_dir = '/data/trainingdata' 
-validation_data_dir = '/data/validationdata' 
-
 nb_train_samples = 0
+
 for root, dirs, files in os.walk(train_data_dir):
     nb_train_samples += len(files)
 
 nb_validation_samples = 0
 for root, dirs, files in os.walk(validation_data_dir):
     nb_validation_samples += len(files)
-
-epochs = 5
-batch_size = 32
 
 
 # Model definition
@@ -131,7 +168,7 @@ model.compile(loss='categorical_crossentropy',
 
 
 # Captures GPU usage
-subprocess.Popen("timeout 120 nvidia-smi --query-gpu=utilization.gpu,utilization.memory --format=csv -l 1 | sed s/%//g > /app/results/GPU-stats.log",shell=True)
+#subprocess.Popen("timeout 120 nvidia-smi --query-gpu=utilization.gpu,utilization.memory --format=csv -l 1 | sed s/%//g > /app/results/GPU-stats.log",shell=True)
 
 
 
@@ -164,20 +201,63 @@ print "Finished running the basic model... trying to save results now.."
 
 # To write the each epoch run time into a json file
 now = datetime.datetime.now()
-
 filetime = str(now.year)+str(now.month)+str(now.day)+'_'+str(now.hour)+str(now.minute)+str(now.second)
-epochfilename='SimpsonsEpochRuntime_'+filetime+'.json'
-timefile = open(epochfilename, "a+")
-times = time_callback.times
-print >> timefile, times
+
+
+modelInfo['epochTimeInfo'] = time_callback.times
+
+# epochfilename='SimpsonsEpochRuntime_'+filetime+'.json'
+# timefile = open(epochfilename, "a+")
+# times = time_callback.times
+# print >> timefile, times
 
 modelfilename=resultsDir+'Simpsonsmodel_'+filetime+'.h5'
-
 model.save(modelfilename)
 
-historyfilename =resultsDir+ 'SimpsonsModelhistory_'+filetime+'.json'
-pandas.DataFrame(simpsonsModel.history).to_json(historyfilename)
+modelInfo['historyData'] =  pd.DataFrame(simpsonsModel.history).to_dict(orient='records')
+
+
 #pandas.DataFrame(simpsonsModel.history).to_json("/data/trainingdata/simpsons_history_0629.json")
+
+
+# saving Confusion Matrix and Classification Report to a text file for human vision
+target_names = validation_generator.class_indices
+
+Y_pred = model.predict_generator(validation_generator, nb_validation_samples // batch_size+1)
+y_pred = np.argmax(Y_pred, axis=1)
+
+cnf_matrix = confusion_matrix(validation_generator.classes, y_pred)
+cls_rpt = classification_report(validation_generator.classes, y_pred, target_names=target_names) 
+
+
+
+
+
+# Serialize confusion matrix and prediction/probabilities matrix stores in json file
+
+modelInfo['confusionMatrix'] =  pd.DataFrame(cnf_matrix).to_dict(orient='records')
+
+modelInfo['prediction_report'] = pd.DataFrame(y_pred).to_dict(orient='records')
+
+#modelInfo['classification_report'] = 
+
+
+# df=pd.DataFrame(cnf_matrix)
+# df.to_json(rptjson, orient='records', lines=True)
+
+# sysoptfile = 'classificationSystemEnvironment_'+filetime+'.txt'
+# import subprocess
+# sysopt = (subprocess.check_output("lscpu", shell=True).strip()).decode()
+# with open(sysoptfile,"a+") as f:
+#     for line in sysopt:
+#         f.write(line)
+
+
+
+
+
+
+
 
 # saving Confusion Matrix and Classification Report to a file
 target_names = validation_generator.class_indices
@@ -189,11 +269,17 @@ ptropt= 'Confusion Matrix'
 print >> file, ptropt
 cnf_matrix = confusion_matrix(validation_generator.classes, y_pred)
 print >>file, cnf_matrix
+
+
 ptropt = 'Classification Report'
 print >> file, ptropt
 cls_rpt = classification_report(validation_generator.classes, y_pred, target_names=target_names) 
 print >> file, cls_rpt
 file.close()                                         
+
+
+
+resultSummaryFile = resultsDir + filetime + ".GutmansTextFile.json"
 
 
 #Confusion Matrix is shown on a Plot
@@ -211,8 +297,71 @@ pyplot.savefig(plotopt)
 
 
 #To plot GPU usage
-gpu = pd.read_csv("/app/results/GPU-stats.log")   # make sure that 120 seconds have expired before running this cell
-gpuplt=gpu.plot()
-gpuplt=pyplot.show()
-gpuplt='/app/results/SimsonsGPUImage_'+filetime+'.png'
-pyplot.savefig(gpuplt) 
+# gpu = pd.read_csv("/app/results/GPU-stats.log")   # make sure that 120 seconds have expired before running this cell
+# gpuplt=gpu.plot()
+# gpuplt=pyplot.show()
+# gpuplt='/app/results/SimsonsGPUImage_'+filetime+'.png'
+# pyplot.savefig(gpuplt) 
+
+
+
+# saving Confusion Matrix and Classification Report to a file
+target_names = validation_generator.class_indices
+optfile = 'SimsonsModeloutput_'+filetime+'.txt'
+file = open(optfile, "a+")
+Y_pred = model.predict_generator(validation_generator, nb_validation_samples // batch_size+1)
+y_pred = np.argmax(Y_pred, axis=1)
+ptropt= 'Confusion Matrix' 
+print >> file, ptropt
+cnf_matrix = confusion_matrix(validation_generator.classes, y_pred)
+print >>file, cnf_matrix
+
+# Serialize confusion matrix and stores in json file
+cmfile= resultsDir + 'SimpsonsModelConfusionMatrix_'+filetime+'.json' 
+with io.open(cmfile, 'w', encoding='utf8') as outfile:
+    str_ = json.dumps(cnf_matrix.tolist(),
+                      indent=4, sort_keys=True,
+                      separators=(',', ':'), ensure_ascii=False)
+    outfile.write(to_unicode(str_))
+
+
+ptropt = 'Classification Report'
+print >> file, ptropt
+cls_rpt = classification_report(validation_generator.classes, y_pred, target_names=target_names) 
+print >> file, cls_rpt
+rptjson= resultsDir + 'SimpsonsModelClassificationReport_'+filetime+'.json' 
+with io.open(rptjson, 'w', encoding='utf8') as outfile:
+    str_ = json.dumps(cnf_matrix.tolist(),
+                      indent=4, sort_keys=True,
+                      separators=(',', ':'), ensure_ascii=False)
+    outfile.write(to_unicode(str_))
+file.close()                                         
+
+# sysoptfile = resultsDir + 'SimpsonsSystemEnvironment_'+filetime+'.txt'
+# import subprocess
+# sysopt = (subprocess.check_output("lscpu", shell=True).strip()).decode()
+# with open(sysoptfile,"a+") as f:
+#     for line in sysopt:
+#         f.write(line)
+
+# from tensorflow.python.client import device_lib
+# LOCAL_DEVICES = device_lib.list_local_devices()
+
+# modelInfo['LOCAL_DEVICES'] = LOCAL_DEVICES
+
+
+#Confusion Matrix is shown on a Plot
+pyplot.figure(figsize=(8,8))
+cnf_matrix =confusion_matrix(validation_generator.classes, y_pred)
+classes = list(target_names)
+pyplot.imshow(cnf_matrix, interpolation='nearest')
+pyplot.colorbar()
+tick_marks = np.arange(len(classes))  
+_ = pyplot.xticks(tick_marks, classes, rotation=90)
+_ = pyplot.yticks(tick_marks, classes)
+plotopt= resultsDir + 'SimsonsModelImage_'+filetime+'.png'
+pyplot.savefig(plotopt)
+
+
+with open(resultSummaryFile ,"w")  as fp:
+    json.dump(modelInfo,fp)

@@ -37,7 +37,12 @@
 
     var resizer  = { view:"resizer"}
 
-    var leftPanel = { view:"template", template:"Left", gravity: 0.1}
+
+    var dataTable = { view: "datatable", id: "resultList", autoConfig: true, url:"2018719_182011.GutmansTextFile.json"}
+
+    var leftPanel = { gravity: 1, rows: [dataTable]}
+
+
 
 
     var confusionMatrixFile = 'results/SimsonsModelImage_201879_19592116958.png';
