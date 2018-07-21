@@ -5,5 +5,5 @@ docker run \
     -v "/home/dagutman/devel/KerasSimpsons_Tensorflow/rawImageData/training:/data/train:rw" \
     -v "/home/dagutman/devel/KerasSimpsons_Tensorflow/rawImageData/testing:/data/test:rw" \
     -p 666:8888 --entrypoint python \
-    dgneuroml /app/simpsonsmodel.py
+    gutmanlab/simpsonskeras:v1 /app/simpsonsmodel.py
 #    fgiuste/neuroml:simpsons /app/simpsonsmodel.py
