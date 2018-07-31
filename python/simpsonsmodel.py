@@ -230,14 +230,10 @@ cnf_matrix = confusion_matrix(validation_generator.classes, y_pred)
 cls_rpt = classification_report(validation_generator.classes, y_pred, target_names=target_names) 
 
 
-
-
-
 # Serialize confusion matrix and prediction/probabilities matrix stores in json file
 
-modelInfo['confusionMatrix'] =  pd.DataFrame(cnf_matrix).to_dict(orient='records')
-
-modelInfo['prediction_report'] = pd.DataFrame(y_pred).to_dict(orient='records')
+modelInfo['confusionMatrix']   =  pd.DataFrame(cnf_matrix).to_dict(orient='records')
+modelInfo['prediction_report'] =  pd.DataFrame(y_pred).to_dict(orient='records')
 
 #modelInfo['classification_report'] = 
 
@@ -325,6 +321,9 @@ with io.open(cmfile, 'w', encoding='utf8') as outfile:
     outfile.write(to_unicode(str_))
 
 
+
+modelInfo['confusionMatrixV1'] =  cnf_matrix.tolist()
+
 ptropt = 'Classification Report'
 print >> file, ptropt
 cls_rpt = classification_report(validation_generator.classes, y_pred, target_names=target_names) 
@@ -350,18 +349,6 @@ file.close()
 # modelInfo['LOCAL_DEVICES'] = LOCAL_DEVICES
 
 
-#Confusion Matrix is shown on a Plot
-pyplot.figure(figsize=(8,8))
-cnf_matrix =confusion_matrix(validation_generator.classes, y_pred)
-classes = list(target_names)
-pyplot.imshow(cnf_matrix, interpolation='nearest')
-pyplot.colorbar()
-tick_marks = np.arange(len(classes))  
-_ = pyplot.xticks(tick_marks, classes, rotation=90)
-_ = pyplot.yticks(tick_marks, classes)
-plotopt= resultsDir + 'SimsonsModelImage_'+filetime+'.png'
-pyplot.savefig(plotopt)
-
 
 with open(resultSummaryFile ,"w")  as fp:
-    json.dump(modelInfo,fp)
+    json.dump(modelInfo,fp,indent=2)
