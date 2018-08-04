@@ -1,11 +1,14 @@
-#docker run \
-#    --runtime=nvidia \
-nvidia-docker run \
+docker run \
+    --runtime=nvidia \
     -ti \
     -v "${PWD}:/app:rw" \
     -v "/home/dagutman/devel/KerasSimpsons_Tensorflow/rawImageData/training:/data/train:rw" \
     -v "/home/dagutman/devel/KerasSimpsons_Tensorflow/rawImageData/testing:/data/test:rw" \
-    -p 665:8888 --entrypoint python \
-    fgiuste/neuroml:V3 /app/simpsonsmodel.py
+    -p 666:8888 \
+    fgiuste/neuroml:V3
+
+### was the simpsons
 
 #    gutmanlab/simpsonskeras:v1 /app/simpsonsmodel.py
+
+

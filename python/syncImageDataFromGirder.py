@@ -29,7 +29,7 @@ def syncImageDataFromGirder( imageFolderOnLocalMachine=imageFolderOnLocalMachine
     ## This determines which images are already uploaded to Girder, and in the next block I check if it's uploaded
 
     ### Now download testingSetData
-    print "Now downloading the validation set"
+    print "Now downloading the testing data set"
     imagesProcessed = imagesDownloaded = 0
 
     for cf in gc.listFolder(testSetFolderUID):  ## cf = characterFolder
@@ -37,7 +37,7 @@ def syncImageDataFromGirder( imageFolderOnLocalMachine=imageFolderOnLocalMachine
         print "There are a total of %d items for %s" % (len(testingSetCharImages), cf['name'])
 
         ## Check each image item for appropriate tags.. i.e. characterClass and largeItem
-        localFolderForChar = os.path.join(imageFolderOnLocalMachine,'validation',cf['name'])
+        localFolderForChar = os.path.join(imageFolderOnLocalMachine,'testing',cf['name'])
         if not os.path.isdir(localFolderForChar):
             os.makedirs(localFolderForChar)
 
@@ -67,7 +67,7 @@ def syncImageDataFromGirder( imageFolderOnLocalMachine=imageFolderOnLocalMachine
                 tsName = x['meta']['trainingSetName']
                 trainingSetCharImages.append(x)
             except:
-                print "tag not fond.."
+                print "tag not found.."
 
         if len(trainingSetCharImages) > 0:
             localFolderForChar = os.path.join(imageFolderOnLocalMachine,'training',cf['name'])

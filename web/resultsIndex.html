@@ -1,0 +1,138 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+    <link rel="stylesheet" href="http://cdn.webix.com/edge/webix.css" type="text/css">
+    <script src="http://cdn.webix.com/edge/webix.js" type="text/javascript"></script>
+    <link rel="stlyesheet" href="css/facetCSS.css" type="text/css">
+    <script src="config.js" type="text/javascript"></script>
+    <script src="girderHelpers.js" type="text/javascript"></script>
+
+               <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
+    <script
+  src="https://code.jquery.com/jquery-3.3.1.min.js"
+  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+  crossorigin="anonymous"></script>
+    <style>
+    /* Key parameter for setting up my template!! New CSS Trick below */
+
+    .template-image {
+        width: 100%;
+        height: inherit;
+    }
+    </style>
+</head>
+
+<body>
+<div id="plotlyDiv" width="600px"></div>
+    <script type="text/javascript" charset="utf-8">
+    /* place for UI configuration */
+
+    var header = {
+        view: "template",
+        type: "header",
+        template: "Keras Simpsons Results Viewer"
+    }
+
+    var resizer  = { view:"resizer"}
+
+
+    var dataTable = { view: "datatable", id: "resultList", autoConfig: true, url:"2018719_182011.GutmansTextFile.json"}
+
+    var leftPanel = { gravity: 1, rows: [dataTable]}
+
+
+
+
+    var confusionMatrixFile = 'results/SimsonsModelImage_201879_19592116958.png';
+
+    var ModelHistoryFile = 'results/SimsonsModelhistory_201879_225329927535.json';
+    
+    var confusionMatrixImage = { view:"template", template:"<img src='" + confusionMatrixFile + "' width=400>"}
+
+    var valAccPlot = { view:"template", content:  "plotlyDiv"} ;
+
+
+    var middlePanel = { rows: [confusionMatrixImage, valAccPlot ]  }
+
+
+
+    var rightPanel = { view:"template", template:"Right", gravity: 0.1}
+
+
+    webix.ready(function () {
+
+    webix.ui({
+        rows: [header,
+
+        { cols: [leftPanel,resizer,middlePanel,resizer,rightPanel]
+
+
+
+        }
+
+        ]
+    });
+});
+
+
+
+
+    var myData = {}
+
+    $.getJSON(ModelHistoryFile, function(json) { 
+        myData = json;
+
+
+
+var trace1 = {
+  x: Object.keys( myData['acc']),
+  y: Object.values( myData['acc'] ),
+  type: 'scatter',
+  name : 'accuracy'
+};
+
+var trace2 = {
+  x: Object.keys( myData['loss']),
+  y: Object.values( myData['loss'] ),
+  name : "loss",
+   type: 'scatter'
+};
+
+
+var trace3 = {
+  x: Object.keys( myData['val_acc']),
+  y: Object.values( myData['val_acc'] ),
+  name : "validation accuracy",
+   type: 'scatter'
+};
+
+
+var trace4 = {
+  x: Object.keys( myData['val_loss']),
+  y: Object.values( myData['val_loss'] ),
+  name : "validation loss",
+   type: 'scatter'
+};
+
+
+
+var data = [trace1, trace2, trace3, trace4];
+
+Plotly.newPlot('plotlyDiv', data);
+
+
+webix.message("PLOT ME PLEASE")
+        }); // this will show the info it in firebug console });
+
+  
+    </script>
+
+
+
+
+
+</body>
+
+</html>
