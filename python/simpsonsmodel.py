@@ -34,6 +34,17 @@ import pickle
 import json
 
 
+import tensorflow as tf
+from keras.backend.tensorflow_backend import set_session
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True  # dynamically grow the memory used on the GPU
+config.log_device_placement = True  # to log device placement (on which device the operation ran)
+                                    # (nothing gets printed in Jupyter, only if you run it standalone)
+sess = tf.Session(config=config)
+set_session(sess)  # set this TensorFlow session as the default session for Keras
+
+
+
 try:
     to_unicode = unicode
 except NameError:
@@ -68,7 +79,7 @@ modelInfo['Device']['deviceNames']  = deviceNames
 
 ### These parameters can be tuned and may affect classification results or accuracy
 img_width, img_height = 64, 64
-epochs = 1
+epochs = 2
 batch_size = 128
 
 
@@ -197,7 +208,7 @@ simpsonsModel = model.fit_generator(
     callbacks=[time_callback])    
 
 
-print "Finished running the basic model... trying to save results now.."
+print("Finished running the basic model... trying to save results now..")
 
 # To write the each epoch run time into a json file
 now = datetime.datetime.now()
