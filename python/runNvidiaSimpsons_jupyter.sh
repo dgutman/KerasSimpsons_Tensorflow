@@ -1,9 +1,8 @@
-docker run \
-    --runtime=nvidia \
+nvidia-docker  run \
     -ti \
     -v "${PWD}:/app:rw" \
-    -v "/home/dagutman/devel/KerasSimpsons_Tensorflow/rawImageData/training:/data/train:rw" \
-    -v "/home/dagutman/devel/KerasSimpsons_Tensorflow/rawImageData/testing:/data/test:rw" \
+    -v "/nvme/simpsonsData/rawImageData/training:/data/train:rw" \
+    -v "/nvme/simpsonsData/rawImageData/testing:/data/test:rw" \
     -p 666:8888 \
     fgiuste/neuroml:V3
 

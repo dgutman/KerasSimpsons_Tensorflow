@@ -4,7 +4,7 @@ import girder_client
 ### You need to change this depending on where you want to store the rawImage Data
 
 ## Make the below folder appropriate for your configuration
-imageFolderOnLocalMachine = "/home/dagutman/devel/KerasSimpsons_Tensorflow/rawImageData/"
+imageFolderOnLocalMachine = "/home/dgutman/devel/KerasSimpsons_Tensorflow/rawImageData/"
 imageFolderUID = '5b0ebfab92ca9a001733549d'
 
 testSetFolderUID = '5b197de892ca9a001735466a'
