@@ -3,19 +3,60 @@
 
 <head>
     <link rel="stylesheet" href="http://cdn.webix.com/edge/webix.css" type="text/css">
-    <script src="http://cdn.webix.com/edge/webix.js" type="text/javascript"></script>
+    <script src="http://cdn.webix.com/edge/webix_debug.js" type="text/javascript"></script>
     <link rel="stlyesheet" href="css/facetCSS.css" type="text/css">
     <script src="config.js" type="text/javascript"></script>
     <script src="girderHelpers.js" type="text/javascript"></script>
-
-               <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
-    <script
-  src="https://code.jquery.com/jquery-3.3.1.min.js"
-  integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
-  crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
     <style>
     /* Key parameter for setting up my template!! New CSS Trick below */
+
+    .overall {
+        /*        border-radius: 4px;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 8px;
+        height: 65px;*/
+        padding: 10px;
+        color: #303030;
+        /*        text-shadow: 0 1px 0 #FFFFFF;
+*/
+        background-color: #00ff00;
+        /*        background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #edef00), color-stop(1, #e1e4ea));
+        background: -o-linear-gradient(top, #edeff4 0%, #e1e400 100%);
+        background: -ms-linear-gradient(top, #edeff4 0%, #e1e400 100%);
+        background: -moz-linear-gradient(top, #edeff4 0%, #e1e400 100%);
+        background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #edef00), color-stop(1, #e1e4ea));
+*/
+        background: #00ff00;
+        /*        box-shadow: 0px 1px 1px #d4d7de;
+*/
+    }
+
+
+    .overall_wrong {
+        /*        border-radius: 4px;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 8px;
+        height: 65px;*/
+        padding: 10px;
+        color: #303030;
+        /*        text-shadow: 0 1px 0 #FFFFFF;
+*/
+        background-color: #ff0000;
+        /*        background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #edef00), color-stop(1, #e1e4ea));
+        background: -o-linear-gradient(top, #edeff4 0%, #e1e400 100%);
+        background: -ms-linear-gradient(top, #edeff4 0%, #e1e400 100%);
+        background: -moz-linear-gradient(top, #edeff4 0%, #e1e400 100%);
+        background: -webkit-gradient(linear, left top, left bottom, color-stop(0, #edef00), color-stop(1, #e1e4ea));
+*/
+        background: #ff0000;
+        /*        box-shadow: 0px 1px 1px #d4d7de;
+*/
+    }
+
+
+
 
     .template-image {
         width: 100%;
@@ -25,7 +66,8 @@
 </head>
 
 <body>
-<div id="plotlyDiv" width="600px"></div>
+    <div id="plotlyDiv" width="600px"></div>
+    <div id="secondPlotlyDiv" width="600px"></div>
     <script type="text/javascript" charset="utf-8">
     /* place for UI configuration */
 
@@ -35,104 +77,361 @@
         template: "Keras Simpsons Results Viewer"
     }
 
-    var resizer  = { view:"resizer"}
+    var resizer = { view: "resizer" }
+
+    var dataCols = [
+        { id: "batch_size" },
+        { id: "img_width" },
+        { id: "img_height" },
+        { id: "epochs" },
+        { id: "driverVersion", template: function(obj) { return obj['Device']['driverVersion'] } },
+        { id: "GPU", template: function(obj) { return obj['Device']['deviceNames'][0] } },
+        { id: "labelsInModel", template: function(obj) { return Object.keys(obj['target_names']).length } },
+        { id: "totalRunTime"}
+    ]
+
+    var dataTable = {
+        gravity: 0.5,
+        view: "datatable",
+        id: "resultList",
+        columns: dataCols,
+        // autoConfig: true,
+        url: "results/modelRunInfo.201887_1914.json"
+
+    }
 
 
-    var dataTable = { view: "datatable", id: "resultList", autoConfig: true, url:"2018719_182011.GutmansTextFile.json"}
+    var config = {};
 
-    var leftPanel = { gravity: 1, rows: [dataTable]}
+    config['BASE_URL'] = "http://candygram.neurology.emory.edu:8080/api/v1";
 
+
+    testFolderUID = '5b197de892ca9a001735466a';
+
+
+    // rows: [{
+    //                gravity: 0.1,
+    //                cols: [
+    //                    { id: "imgCount", view: "template", template: "imgCount" },
+    //                    { id: "imgClasses", view: "template", template: "imgClasses" },
+    //                    { view: "button", type: "icon", id: "smallThumb", icon: "envelope", width: 120, label: "small", click: changeDVTemplate, tooltip: "small Thumbs" },
+    //                    { view: "button", type: "icon", id: "mediumThumb", icon: "flag", label: "medium", click: changeDVTemplate, tooltip: "medium thumbs" },
+    //                    { view: "button", type: "icon", id: "largeThumb", icon: "plus", label: "large", click: changeDVTemplate },
+    //                    { view: "button", type: "icon", id: "namedThumb", icon: "plus", label: "named", click: changeDVTemplate }
+
+    //                ]
+    //            },
+
+
+
+
+
+    var classificationResultsDataview = {
+            rows: [{
+                    gravity: 0.2,
+                    cols: [
+
+                        {
+                            view: "button",
+                            type: "icon",
+                            id: "showAll",
+                            icon: "asterisk",
+                            width: 120,
+                            label: "showAll",
+                            click: function(obj) {
+
+                                $$("classResults").filter(function(obj) {
+                                  return true
+                                   }
+                                )
+                            },
+                            tooltip: "small Thumbs"
+
+                        },
+                { id: "imgCount", view: "template", template: "imgCount" },
+            
+                { view: "button", type: "icon", id: "showWrong", icon: "smile", width: 120, label: "showWrong", click: function(obj) 
+                {
+            $$("classResults").filter(function(obj) {
+                                  if  (obj.actualImageLabel == obj.predictedImageLabel) {
+                                     return false}
+                                     else {return true}
+                                   }
+                                )
+
+
+                 }, 
+
+
+
+
+                        tooltip: "wrongGuess" },
+                { view: "template", template: "Filter2" },
+                { view: "template", template: "Filter3" },
+                { view: "template", template: "Filter4" },
+
+
+
+
+            ]
+        },
+        {
+            id: "classResults",
+            view: "dataview",
+            type: {
+                template: function(obj, common) {
+
+                    style = "background-color:#FFFF00";
+                    style = "";
+                    thumbSize = 64;
+
+
+                    if (obj.actualImageLabel == obj.predictedImageLabel) {
+                        bgColor = "green"
+                        icon = "fa-check";
+                        dvClass = "overall";
+                    } else {
+                        bgColor = "red";
+                        icon = "fa-asterisk";
+                        dvClass = "overall_wrong";
+                    }
+
+                    return "<div class='" + dvClass + "'><span style=" + style + "><img src='" + config.BASE_URL + "/item/" + obj.girderId + "/tiles/thumbnail?width=" + thumbSize + "&height=" + thumbSize + "&fill=" + bgColor + "' ><br>Conf:" + webix.i18n.numberFormat(obj.predictionAcc) + "%<span class='webix_icon " + icon + "'></span></div>"
+
+                },
+                height: 150,
+                width: 120,
+                //imgCount
+            },
+            tooltip: { template: function(obj) {
+                thumbSize = 128;
+                return "Actual:" + obj.actualImageLabel + "<br>Prediction:" + obj.predictedImageLabel +
+                    "<img src='" + config.BASE_URL + "/item/" + obj.girderId + "/tiles/thumbnail?width=" + thumbSize * 2 + "&height=" + thumbSize * 2 + "&fill=white' >"
+            }, dx: 0, dy: -250 },
+            on:
+              {
+
+                "onAfterRender": function(obj)  {
+
+                    $$("imgCount").setHTML("# Classes:" +$$("classResults").count());
+
+                 webix.message("YOU ROCK")  
+
+               }
+
+
+              }
+        }
+    ]
+    }
+
+
+
+      // $$("imgCount").setHTML("Item Count: " + $$("mainThumbGallery").count());
+
+    // unction(obj, common){
+    //             return "no more than "+ webix.i18n.numberFormat(obj.votes);
+    // type: {
+    //     template: "<img src='" + config.BASE_URL + "/item/#girderId#/tiles/thumbnail?width=60' >#actualImageLabel# <br>#predictedImageLabel#<br>#predictionAcc#",
+    //     height: 200,
+    //     width: 200
+    // },
+
+    var leftPanel = { gravity: 1, rows: [dataTable, classificationResultsDataview] }
+
+
+    //template:"<span class='webix_strong'>Rating: </span> #rating#<br/><span class='webix_strong'>Votes: </span> #votes#"
 
 
 
     var confusionMatrixFile = 'results/SimsonsModelImage_201879_19592116958.png';
 
-    var ModelHistoryFile = 'results/SimsonsModelhistory_201879_225329927535.json';
+    // var ModelHistoryFile = 'results/SimsonsModelhistory_201879_225329927535.json';
+    var ModelHistoryFile = 'results/modelRunInfo.201887_1914.json';
+
+    var confusionMatrixImage = { view: "template", template: "<img src='" + confusionMatrixFile + "' width=400>" }
+
+    var valAccPlot = { view: "template", content: "plotlyDiv" };
+
+
+    var confMatrixPlot = { view: "template", content: "secondPlotlyDiv" };
+
+
+    // var <div id="secondPlotlyDiv" width="600px"></div>
     
-    var confusionMatrixImage = { view:"template", template:"<img src='" + confusionMatrixFile + "' width=400>"}
 
-    var valAccPlot = { view:"template", content:  "plotlyDiv"} ;
-
-
-    var middlePanel = { rows: [confusionMatrixImage, valAccPlot ]  }
+    var middlePanel = { rows: [valAccPlot,confMatrixPlot] }
 
 
 
-    var rightPanel = { view:"template", template:"Right", gravity: 0.1}
+
+    // $$("imgClasses").setHTML("# Classes:" +$$("leftPanel").count());
 
 
-    webix.ready(function () {
-
-    webix.ui({
-        rows: [header,
-
-        { cols: [leftPanel,resizer,middlePanel,resizer,rightPanel]
+    var rightPanel = { rows: [confusionMatrixImage], gravity: 0.1 }
 
 
+    webix.ready(function() {
 
-        }
+        webix.ui({
+            rows: [header,
+                {
+                    cols: [leftPanel, {view:"resizer"},  middlePanel, resizer, rightPanel]
+                }
 
-        ]
+            ]
+        });
     });
-});
+
+
+    trainSetImgURL = "http://candygram.neurology.emory.edu:8080/api/v1/resource/5b197de892ca9a001735466a/items?type=folder&limit=1000&sort=_id&sortdir=1"
+    var trainImgData = {};
+
+    $.getJSON(trainSetImgURL, function(json) {
+        //console.log(json);
+        json.forEach(function(v, idx) {
+            // console.log(v);
+            trainImgData[v.name] = { 'lowername': v.lowername, imgId: v._id }
+        })
+        ///This provides the mappings.. 
+        //trainImgData
+    });
 
 
 
 
-    var myData = {}
+    var myData = {};
 
-    $.getJSON(ModelHistoryFile, function(json) { 
-        myData = json;
-
+    function pullMetaData() {
 
 
-var trace1 = {
-  x: Object.keys( myData['acc']),
-  y: Object.values( myData['acc'] ),
-  type: 'scatter',
-  name : 'accuracy'
-};
-
-var trace2 = {
-  x: Object.keys( myData['loss']),
-  y: Object.values( myData['loss'] ),
-  name : "loss",
-   type: 'scatter'
-};
+        $.getJSON(ModelHistoryFile, function(json) {
+            console.log(json);
+            myData = json;
+            historyData = myData['historyData'];
+            //$ testPredictionData
+            //        $$("classResults").parse(myData['modelInfo'])
 
 
-var trace3 = {
-  x: Object.keys( myData['val_acc']),
-  y: Object.values( myData['val_acc'] ),
-  name : "validation accuracy",
-   type: 'scatter'
-};
+            var loss = [];
+            var accuracy = [];
+            var valLoss = [];
+            var valAccuracy = [];
+            var iterationIdx = [];
+            historyData.forEach(function(v, idx) {
+                loss.push(v['loss']);
+                accuracy.push(v['acc']);
+                valLoss.push(v['val_loss']);
+                valAccuracy.push(v['val_acc']);
+                iterationIdx.push(idx);
+            })
 
 
-var trace4 = {
-  x: Object.keys( myData['val_loss']),
-  y: Object.values( myData['val_loss'] ),
-  name : "validation loss",
-   type: 'scatter'
-};
+            $$("classResults").parse(myData['testPredictionData']);
 
 
+            var trace1 = {
+                y: accuracy,
+                x: iterationIdx,
+                type: 'scatter',
+                name: 'accuracy'
+            };
 
-var data = [trace1, trace2, trace3, trace4];
+            var trace2 = {
+                y: loss,
+                x: iterationIdx,
+                name: "loss",
+                type: 'scatter'
+            };
 
-Plotly.newPlot('plotlyDiv', data);
+            var trace3 = {
+                y: valAccuracy,
+                x: iterationIdx,
+                name: "validation accuracy",
+                type: 'scatter'
+            };
 
 
-webix.message("PLOT ME PLEASE")
+            var trace4 = {
+                y: valLoss,
+                x: iterationIdx,
+                name: "validation loss",
+                type: 'scatter'
+            };
+
+            var data = [trace1, trace2, trace3, trace4];
+
+            Plotly.newPlot('plotlyDiv', data);
+
+
+            // $$("classResults").load()
+
         }); // this will show the info it in firebug console });
+    };
 
-  
+
+
+    //         console.log(json);
+    //         myData = json;
+    //         historyData = myData['historyData'];
+    //          //$ testPredictionData
+    // //        $$("classResults").parse(myData['modelInfo'])
+
+
+    //         var loss = [];
+    //         var accuracy = [];
+    //         var valLoss = [];
+    //         var valAccuracy = [];
+    //         var iterationIdx = [];
+    //         historyData.forEach(function(v, idx) {
+    //             loss.push(v['loss']);
+    //             accuracy.push(v['acc']);
+    //             valLoss.push(v['val_loss']);
+    //             valAccuracy.push(v['val_acc']);
+    //             iterationIdx.push(idx);
+    // })
+
+
+
+
+    webix.ready(function() {
+
+
+      webix.debug =true;
+        pullMetaData();
+
+
+
+
+        //myData['testPredictionData'].forEach( function(k,v) { console.log(k) } );
+
+        // myData['testPredictionData'].forEach( function(v,idx) { console.log(idx)  });
+
+
+        // $$("classResults").parse(myData['testPredictionData']);
+
+        console.log(myData);
+        // webix.ui({
+        //   container: "box",
+        //   view: "window",
+        //   ...
+        // });
+        // ...
+        // template: "<img src='" + config.BASE_URL + "/item/#_id#/tiles/thumbnail?width=60'>",
+        //         width: 65,
+        //         height: 65
+        //{ view:"icon", icon:"envelope"},
+        //con
+        //{ template:"<span class='webix_icon fa-#icon#'></span> #name#"}
+        // type:{
+        //    width: 260,
+        //    height: 90,
+        //    template:function(obj){
+        //      return "<div class='overall'><div class='rank'>"+obj.rank+".</div><div class='title'>"+obj.title+"</div><div class='year'>"+obj.year+" year</div> </div>"
+        //    }
+        //  },
+    });
     </script>
-
-
-
-
-
 </body>
 
 </html>
